@@ -6,13 +6,10 @@ import scipy.stats
 import numpy as np
 
 import sys
-import io
-sys.path.append("/Users/leobrueggeman/GitHub/LINCS_repo/l1ktools/python")
+import os
+
 import cmap.io.gct as gct
 import cmap.io.plategrp as grp
-
-gctx_path = '/Volumes/HimmelWD/lincs/modzs.gctx'
-
 
 # function that takes gzipped github tsv files and creates dataframe
 def url_to_df(path):
@@ -25,7 +22,7 @@ def extract_from_gctx(path, probes, signatures):
     """Returns a DataFrame with probes as rows and signatures as columns."""
     gct_object = gct.GCT(path)
     gct_object.read_gctx_matrix(cid = signatures, rid = probes)
-    return pd.DataFrame(gct_object.matrix, index=probe_ids, columns=sig_ids)
+    return pd.DataFrame(gct_object.matrix, index=probes, columns=signatures)
 
 def probes_to_genes(df, probe_to_gene):
     """Converts probe level dataframe to gene level dataframe"""
@@ -38,7 +35,7 @@ def get_consensus_signatures(df, pert_to_sigs):
     """pert_to_sigs is a dictionary of context_id to a list of signatures."""
     consensuses = dict()
     for pert, sigs in pert_to_sigs.items():
-        consensuses[pert] = get_consensus_signature(df[sigs])
+        consensuses[pert] = get_consensus_signature(df.loc[:, sigs])
     return pd.DataFrame(consensuses)
 
 def get_consensus_signature(df):
@@ -58,10 +55,10 @@ def weight_signature(df, min_cor = 0.05):
     """
     if len(df.columns) == 1:
         return np.array([1])
-    
+
     if len(df.columns) == 2:
         return np.array([0.5, 0.5])
-    
+
     rho, p = scipy.stats.spearmanr(df, axis=0)
     mean_cor = (np.sum(rho, axis=0) - 1) / (len(rho) - 1)
     weights = np.maximum(mean_cor, min_cor)
@@ -86,3 +83,4 @@ for sig in df.columns:
     context_to_sigs.setdefault(context, []).append(sig)
 signatures_to_context(df, context_to_sigs)
 """
+
